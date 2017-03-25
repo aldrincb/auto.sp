@@ -1,4 +1,8 @@
-#OS junk files
+# OS junk files
+
 *.DS_Store
+
+# Udacity Dataset
+
 udacity-dataset.zip
 udacity-dataset/
