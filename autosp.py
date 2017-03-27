@@ -39,6 +39,7 @@ def extract_hog_features(files, channel=0, orientations=9, pixels_per_cell=8, ce
         if channel == "ALL":
             for j in xrange(0, img.shape[2]):
                 hog_features = hog(img[:,:,j], orientations=orientations, pixels_per_cell=(pixels_per_cell, pixels_per_cell), cells_per_block=(cells_per_block, cells_per_block), transform_sqrt=transform_sqrt, visualise=visualise, feature_vector=feature_vector)
+                hog_features = numpy.ravel(hog_features)
         else:
             hog_features = hog(img[:,:,channel], orientations=orientations, pixels_per_cell=(pixels_per_cell, pixels_per_cell), cells_per_block=(cells_per_block, cells_per_block), transform_sqrt=transform_sqrt, visualise=visualise, feature_vector=feature_vector)
 
