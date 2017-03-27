@@ -1,8 +1,9 @@
 import glob
 import os
 from skimage.feature import hog
+from sklearn.preprocessing import StandardScaler
 import cv2
-import numpy
+import numpy as np
 
 # Load car and not car data
 cars = []
@@ -30,61 +31,93 @@ for i in xrange(0, len(not_car_paths)):
         not_cars.append(file)
 
 # Extract HOG for features
-def extract_hog_features(files, channel=0, orientations=9, pixels_per_cell=8, cells_per_block=2, transform_sqrt=False, visualise=False, feature_vector=True):
-    features = []
+def extract_hog_features(img, channel=0, orientations=9, pixels_per_cell=8, cells_per_block=2, transform_sqrt=False, visualise=False, feature_vector=True):
+    if channel == "ALL":
+        for j in xrange(0, img.shape[2]):
+            hog_features = hog(img[:,:,j], orientations=orientations, pixels_per_cell=(pixels_per_cell, pixels_per_cell), cells_per_block=(cells_per_block, cells_per_block), transform_sqrt=transform_sqrt, visualise=visualise, feature_vector=feature_vector)
+            hog_features = np.ravel(hog_features)
+            print hog_features
+    else:
+        hog_features = hog(img[:,:,channel], orientations=orientations, pixels_per_cell=(pixels_per_cell, pixels_per_cell), cells_per_block=(cells_per_block, cells_per_block), transform_sqrt=transform_sqrt, visualise=visualise, feature_vector=feature_vector)
 
-    for i in xrange(0, len(files)):
-        file = files[i]
-        img = cv2.imread(file)
-        if channel == "ALL":
-            for j in xrange(0, img.shape[2]):
-                hog_features = hog(img[:,:,j], orientations=orientations, pixels_per_cell=(pixels_per_cell, pixels_per_cell), cells_per_block=(cells_per_block, cells_per_block), transform_sqrt=transform_sqrt, visualise=visualise, feature_vector=feature_vector)
-                hog_features = numpy.ravel(hog_features)
-        else:
-            hog_features = hog(img[:,:,channel], orientations=orientations, pixels_per_cell=(pixels_per_cell, pixels_per_cell), cells_per_block=(cells_per_block, cells_per_block), transform_sqrt=transform_sqrt, visualise=visualise, feature_vector=feature_vector)
+    return hog_features
 
-        # Append the new feature vector to the features list
-        features.append(hog_features)
+def extract_bin_spacial_features(image, size=(32, 32)):
+    return cv2.resize(image, size).ravel()
 
-    return features
 
-def extract_bin_spacial_features(files, size=(32, 32)):
-    features = []
+def extract_color_hist_features(image, nbins=32, bins_range=(0,256)):
 
-    for i in xrange(0, len(files)):
-        file = files[i]
-        image = cv2.imread(file)
+    # Compute the histogram of the color channels separately
+    channel1_hist = np.histogram(image[:,:,0], bins=nbins, range=bins_range)
+    channel2_hist = np.histogram(image[:,:,1], bins=nbins, range=bins_range)
+    channel3_hist = np.histogram(image[:,:,2], bins=nbins, range=bins_range)
+    # Concatenate the histograms into a single feature vector
+    hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
+    return hist_features
 
-        features.append(cv2.resize(image, size).ravel())
 
-    return features
 
-def extract_color_hist_features(files, nbins=32, bins_range=(0,256)):
-    features = []
-
-    for i in xrange(0, len(files)):
-        file = files[i]
-        image = cv2.imread(file)
-
-        # Compute the histogram of the color channels separately
-        channel1_hist = numpy.histogram(image[:,:,0], bins=nbins, range=bins_range)
-        channel2_hist = numpy.histogram(image[:,:,1], bins=nbins, range=bins_range)
-        channel3_hist = numpy.histogram(image[:,:,2], bins=nbins, range=bins_range)
-        # Concatenate the histograms into a single feature vector
-        hist_features = numpy.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
-        features.append(hist_features)
-
-    return features
 
 def extract_features(files, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_features, hog_features):
     features = []
-    if spatial_feat:
-        print(len(extract_bin_spacial_features(files)))
-    if hist_features:
-        print(len(extract_color_hist_features(files)))
-    if hog_features:
-        print(len(extract_hog_features(files)))
+
+    for file in files:
+        file_features = []
+        image = cv2.imread(file)
+        if spatial_feat:
+            file_features.append(extract_bin_spacial_features(image))
+        if hist_features:
+            file_features.append(extract_color_hist_features(image))
+        if hog_features:
+            file_features.append(extract_hog_features(image))
+
+        features.append(np.concatenate(file_features))
+
+    return features
+
+
 
 def normalize_features(raw_features):
     normalized_features = []
     return normalized_features
+
+
+
+
+### TODO: Tweak these parameters and see how the results change.
+color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+orient = 9  # HOG orientations
+pix_per_cell = 16 # HOG pixels per cell #16
+cell_per_block = 1 # HOG cells per block #2
+hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
+spatial_size = (16, 16) # Spatial binning dimensions
+hist_bins = 16    # Number of histogram bins
+spatial_feat = False # Spatial features on or off
+hist_feat = False # Histogram features on or off
+hog_feat = True # HOG features on or off
+y_start_stop = [300, None] # Min and max in y to search in slide_window()
+
+
+
+if __name__ == "__main__":
+    car_features = extract_features(cars, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel,
+                                        spatial_feat, hist_feat, hog_feat)
+
+    not_car_features = extract_features(not_cars, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel,
+                                        spatial_feat, hist_feat, hog_feat)
+
+    print "Done extracting features..."
+
+    X = np.vstack((car_features, not_car_features)).astype(np.float64)
+    # Fit a per-column scaler
+    X_scaler = StandardScaler().fit(X)
+    # Apply the scaler to X
+    scaled_X = X_scaler.transform(X)
+
+    y = np.hstack((np.ones(len(car_features)), np.zeros(len(not_car_features))))
+
+
+
+
+
