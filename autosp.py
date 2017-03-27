@@ -11,6 +11,8 @@ from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 
+from neuralnetwork import Neural_Network
+from neuralnetwork import trainer
 
 # Load car and not car data
 cars = []
@@ -105,7 +107,6 @@ def search_windows(img, windows, clf, spatial_size, hist_bins, orient, pix_per_c
     return on_windows
 
 
-
 ### TODO: Tweak these parameters and see how the results change.
 color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
 orient = 9  # HOG orientations
@@ -136,6 +137,9 @@ if __name__ == "__main__":
     # Apply the scaler to X
     scaled_X = X_scaler.transform(X)
 
+    print "number of inputs: ", len(scaled_X)
+    print "number of features: ", len(scaled_X[0])
+
     y = np.hstack((np.ones(len(car_features)), np.zeros(len(not_car_features))))
 
     rand_state = np.random.randint(0, 100)
@@ -156,3 +160,16 @@ if __name__ == "__main__":
     print ("{} seconds to train classifier...".format(round(t2-t1, 5)))
 
     print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
+
+    NN = Neural_Network(Lambda=0.0001)
+    T = trainer(NN)
+    X_train, X_test, y_train, y_test = train_test_split(
+        scaled_X, y, test_size=0.2, random_state=rand_state)
+
+
+    X_train = np.array(X_train, dtype=float)
+    X_test = np.array(X_test, dtype=float)
+    y_train = np.array(y_train.reshape(-1,1), dtype=float)
+    y_test = np.array(y_test.reshape(-1,1), dtype=float)
+
+    T.train(X_train,y_train,X_test,y_test)
