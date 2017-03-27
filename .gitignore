@@ -10,3 +10,8 @@ udacity-dataset/
 # Jupyter hidden items
 .ipynb_checkpoints/
 
+# Media Files
+*.jpeg
+*.jpg
+*.mp4
+
