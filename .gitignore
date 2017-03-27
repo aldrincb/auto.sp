@@ -15,3 +15,5 @@ udacity-dataset/
 *.jpg
 *.mp4
 
+*.pyc
+
