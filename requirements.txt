@@ -13,6 +13,7 @@ enum34==1.1.6
 funcsigs==1.0.2
 functools32==3.2.3.post2
 html5lib==0.999999999
+imageio==2.1.2
 ipykernel==4.5.2
 ipython==5.3.0
 ipython-genutils==0.2.0
@@ -28,6 +29,7 @@ MarkupSafe==1.0
 matplotlib==2.0.0
 mistune==0.7.4
 mock==2.0.0
+moviepy==0.2.2.13
 nbconvert==5.1.1
 nbformat==4.3.0
 networkx==1.11
@@ -70,6 +72,7 @@ testpath==0.3
 Theano==0.9.0
 toolz==0.8.2
 tornado==4.4.2
+tqdm==4.11.2
 traitlets==4.3.2
 virtualenv==15.1.0
 virtualenv-clone==0.2.6
