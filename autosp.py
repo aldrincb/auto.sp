@@ -1,9 +1,16 @@
 import glob
 import os
-from skimage.feature import hog
-from sklearn.preprocessing import StandardScaler
+import time
+
+
 import cv2
 import numpy as np
+
+from skimage.feature import hog
+from sklearn.cross_validation import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import LinearSVC
+
 
 # Load car and not car data
 cars = []
@@ -130,3 +137,22 @@ if __name__ == "__main__":
     scaled_X = X_scaler.transform(X)
 
     y = np.hstack((np.ones(len(car_features)), np.zeros(len(not_car_features))))
+
+    rand_state = np.random.randint(0, 100)
+    X_train, X_test, y_train, y_test = train_test_split(
+        scaled_X, y, test_size=0.2, random_state=rand_state)
+
+    print ('Configured Using:',orient,'orientations',
+           pix_per_cell, 'pixels per cell and', cell_per_block,'cells per block')
+    print ('Feature vector length:', len(X_train[0]))
+
+
+    # TODO: We want to implement our own classifier.
+    svc = LinearSVC()
+    t1 = time.time()
+    svc.fit(X_train, y_train)
+    t2 = time.time()
+
+    print ("{} seconds to train classifier...".format(round(t2-t1, 5)))
+
+    print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
