@@ -82,6 +82,20 @@ def normalize_features(raw_features):
     normalized_features = []
     return normalized_features
 
+def search_windows(img, windows, clf, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_features, hog_features):
+    on_windows = []
+    for window in windows:
+        test_img = cv2.resize(img[window[0][1]:window[1][1], window[0][0]:window[1][0]], (64, 64))
+        features = extract_features([test_img], color_space=color_space, spatial_size=spatial_size, hist_bins=hist_bins, orient=orient, pix_per_cell=pix_per_cell, cell_per_block=cell_per_block, hog_channel=hog_channel, spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat)[0]
+
+        # transform features to be fed into classifier
+        test_features = scaler.transform(np.array(features).reshape(1, -1))
+        prediction = clf.predict(test_features)
+
+        if prediction == 1:
+            on_windows.append(window)
+
+    return on_windows
 
 
 
@@ -116,8 +130,3 @@ if __name__ == "__main__":
     scaled_X = X_scaler.transform(X)
 
     y = np.hstack((np.ones(len(car_features)), np.zeros(len(not_car_features))))
-
-
-
-
-
