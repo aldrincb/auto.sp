@@ -6,3 +6,7 @@
 
 udacity-dataset.zip
 udacity-dataset/
+
+# Jupyter hidden items
+.ipynb_checkpoints/
+
