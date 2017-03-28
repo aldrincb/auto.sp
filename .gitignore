@@ -10,3 +10,14 @@ udacity-dataset/
 # Jupyter hidden items
 .ipynb_checkpoints/
 
+# Media Files
+*.png
+*.jpeg
+*.jpg
+*.mp4
+
+# Python binary
+*.pyc
+
+# Python pickle
+*.p
