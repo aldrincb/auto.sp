@@ -14,9 +14,9 @@ output_videos = ['./datasets/Dense/jan28_outlined.mp4',
           './datasets/Sunny/april21_outlined.mp4',
           './datasets/Urban/march9_outlined.mp4']
 
-output_images = ['./datasets/Dense/jan28_{}.jpeg',
-          './datasets/Sunny/april21_{}.jpeg',
-          './datasets/Urban/march9_{}.jpeg']
+output_images = ['./datasets/Dense/jan28_{}_{}.png',
+          './datasets/Sunny/april21_{}_{}.png',
+          './datasets/Urban/march9_{}_{}.png']
 
 index = 0
 
@@ -53,7 +53,7 @@ def process_image(img, annotated_data, output_images):
     if index >= len(annotated_data):
         return img
 
-    for car in annotated_data[index]:
+    for i, car in enumerate(annotated_data[index]):
         startx, starty = car[0], car[1]
         endx, endy = car[0] + car[2], car[1] + car[3]
 
@@ -61,7 +61,7 @@ def process_image(img, annotated_data, output_images):
         if cropped.shape[0] > 30 and cropped.shape[1] > 30:
             # Only take in images with more than 30 x 30 pixels
             cropped = cv2.resize(cropped, (64, 64))
-            cv2.imwrite(output_images.format(index), cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
+            cv2.imwrite(output_images.format(index, i), cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
 
         img = draw_boxes(img, [((startx, starty), (endx, endy))])
 

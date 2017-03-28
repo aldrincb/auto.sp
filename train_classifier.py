@@ -95,8 +95,8 @@ cell_per_block = 1 # HOG cells per block #2
 hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
 spatial_size = (16, 16) # Spatial binning dimensions
 hist_bins = 16    # Number of histogram bins
-spatial_feat = False # Spatial features on or off
-hist_feat = False # Histogram features on or off
+spatial_feat = True # Spatial features on or off
+hist_feat = True # Histogram features on or off
 hog_feat = True # HOG features on or off
 y_start_stop = [300, None] # Min and max in y to search in slide_window()
 
