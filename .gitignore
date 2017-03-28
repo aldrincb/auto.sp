@@ -1,9 +1,8 @@
-# OS junk files
-
+# OS junk filess
 *.DS_Store
 
-# Udacity Dataset
-
+# Datasets
+datasets/
 udacity-dataset.zip
 udacity-dataset/
 
@@ -14,6 +13,15 @@ udacity-dataset/
 *.jpeg
 *.jpg
 *.mp4
+*.png
 
+# Log files
+*.log
+*.csv
+
+# Python files
 *.pyc
+*.p
 
+# Models
+*.h5
