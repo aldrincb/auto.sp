@@ -1,5 +1,6 @@
 from collections import deque
 import pickle
+import time
 
 from train_classifier import extract_hog_features
 from train_classifier import extract_bin_spacial_features
@@ -7,6 +8,7 @@ from train_classifier import extract_color_hist_features
 
 import cv2
 import numpy as np
+import seaborn as sns
 
 from moviepy.editor import VideoFileClip
 from scipy.ndimage.measurements import label
@@ -14,6 +16,7 @@ from skimage.feature import hog
 from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
+
 
 ### TODO: Tweak these parameters and see how the results change.
 color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
@@ -23,14 +26,11 @@ cell_per_block = 1 # HOG cells per block #2
 hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
 spatial_size = (16, 16) # Spatial binning dimensions
 hist_bins = 16    # Number of histogram bins
-spatial_feat = False # Spatial features on or off
-hist_feat = False # Histogram features on or off
+spatial_feat = True # Spatial features on or off
+hist_feat = True # Histogram features on or off
 hog_feat = True # HOG features on or off
 y_start_stop = [300, None] # Min and max in y to search in slide_window()
 
-
-svc = None
-scaler = None
 
 def extract_features(image, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_features, hog_features):
 
@@ -90,7 +90,7 @@ def sliding_windows(img, x_range, y_range, window_size, xy_overlap_percent):
     return windows
 
 
-def search_windows(img, windows, clf, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_features, hog_features):
+def search_windows(img, clf, scaler, windows, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_features, hog_features):
     on_windows = []
     for window in windows:
         startx = window[0][0]
@@ -109,19 +109,6 @@ def search_windows(img, windows, clf, spatial_size, hist_bins, orient, pix_per_c
         if prediction == 1:
             on_windows.append(window)
 
-    startx = window[0][0]
-    starty = window[0][1]
-    endx = window[1][0]
-    endy = window[1][1]
-
-    cropped = img[starty:endy, startx:endx]
-    test_img = cv2.resize(cropped, (64, 64))
-    features = extract_features(test_img, spatial_size=spatial_size, hist_bins=hist_bins, orient=orient, pix_per_cell=pix_per_cell, cell_per_block=cell_per_block, hog_channel=hog_channel, spatial_feat=spatial_feat, hist_features=hist_features, hog_features=hog_features)
-    
-    # transform features to be fed into classifier
-    test_features = scaler.transform(np.array(features).reshape(1, -1))
-    prediction = clf.predict(test_features)
-            
     return on_windows
 
 
@@ -136,21 +123,21 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
     return imcopy
 
 
-def get_classified_windows(image):
+def get_classified_windows(image, clf, scaler):
     # Returns windows that classifier claims to be a car
     
-    xy_window = [(64,64), (96,96)]#, (128,128), (256,256)]
+    xy_window = [(32,32),(64,64), (96,96), (128,128), (256,256)]
 #     xy_window = [(32,32), (64,64), (128,128), (256,256)]
-    y_start_stop = [[300, None], [300, None]]#, [300, None], [300, None]]
+    y_start_stop = [[400,200], [400, 100], [400, None], [300, None], [300, None]]
 
     windows_temp = []
     for i in range(len(xy_window)):
         windows = sliding_windows(image, [None, None], y_start_stop[i],
-                            xy_window[i], (0.75, 0.75))
-        windows = search_windows(image, windows, svc, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel,
+                            xy_window[i], (0.50, 0.50))
+        windows = search_windows(image, clf, scaler, windows, spatial_size, hist_bins, orient, pix_per_cell, cell_per_block, hog_channel,
                                         spatial_feat, hist_feat, hog_feat)
         windows_temp.append(windows)
-        
+
     #Flatten windows_temp
     windows_final = sum(windows_temp, [])
     return windows_final
@@ -187,14 +174,14 @@ def draw_cars(img, labels):
 # Number of frames to average out from
 NUM_FRAMES = 10
 # Heat values must be over threshold to be valid
-HEAT_THRESHOLD = 20
+HEAT_THRESHOLD = 25
 windows_in_frames = deque([])
 
 
-def process_frame(image, num_frames=NUM_FRAMES, heat_threshold=HEAT_THRESHOLD):
+def process_frame(image, clf, scaler, num_frames=NUM_FRAMES, heat_threshold=HEAT_THRESHOLD):
     global windows_in_frames
 
-    classified_windows = get_classified_windows(image)
+    classified_windows = get_classified_windows(image, clf, scaler)
     windows_in_frames.append(classified_windows)
 
     if len(windows_in_frames) > num_frames:
@@ -209,16 +196,65 @@ def process_frame(image, num_frames=NUM_FRAMES, heat_threshold=HEAT_THRESHOLD):
     return final_image
 
 
+def run_video(clf, scaler):
+    videos = [#'./datasets/Dense/jan28.avi',
+              './datasets/Sunny/april21.avi',
+              './datasets/Urban/march9.avi']
+
+    for i, video in enumerate(videos):
+        video = VideoFileClip(video)
+        detection_video = video.fl_image(lambda x: process_frame(x, clf, scaler, NUM_FRAMES))
+        detection_video.write_videofile("vehicle_detection{}.mp4".format(i), audio=False)
+
+
+def run_frames(clf, scaler):
+
+    HEAT_THRESHOLD = 20
+
+    video = "datasets/Sunny/april21.avi"
+    video = VideoFileClip(video)
+
+    frames = []
+    for i in range(10):
+        frame_name = "frame{}.jpeg".format(i)
+        video.save_frame(frame_name, t=i)
+        frames.append(frame_name)
+
+    final_images = []
+    window_images = []
+    for frame in frames:
+        img = cv2.imread(frame)
+        heatmap = np.zeros_like(img[:,:,0]).astype(np.float)
+
+        classified_windows = get_classified_windows(img, clf, scaler)
+        heatmap = apply_heat(heatmap, classified_windows, 5)
+        labels = label(heatmap)
+        final_image = draw_cars(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), labels)
+        window_img = draw_boxes(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), classified_windows, color=(0, 0, 255), thick=6)
+
+        final_images.append(final_image)
+        window_images.append(window_img)
+
+    # with sns.axes_style("white"):
+    #     print "plotting image..."
+
+    #     for i in xrange(len(frames)):
+    #         fig = plt.figure(i, figsize=(20,20))
+    #         plt.title('Frame: {}'.format(frames[i]))
+    #         plt.subplot(121)
+    #         plt.imshow(final_images[i])
+    #         plt.subplot(122)
+    #         plt.imshow(window_images[i])
+
+
 if __name__ == "__main__":
 
     with open('classifier.p', 'rb') as f:
         data = pickle.load(f)
 
-    svc = data['classifier']
+    clf = data['classifier']
     scaler = data['scaler']
 
-    video = "datasets/Sunny/april21.avi"
-    video = VideoFileClip(video)
+    # run_video(clf, scaler)
 
-    detection_video = video.fl_image(lambda x: process_frame(x, NUM_FRAMES))
-    detection_video.write_videofile("vehicle_detection.mp4", audio=False)
+    run_frames(clf, scaler)
