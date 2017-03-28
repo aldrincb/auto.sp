@@ -17,6 +17,7 @@ udacity-dataset/
 
 # Log files
 *.log
+*.csv
 
 # Python files
 *.pyc
